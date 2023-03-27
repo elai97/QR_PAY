@@ -1,9 +1,11 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:qr_pay/core/themes/color_theme.dart';
 
 import '../../providers/firestore_provider.dart';
 import 'home.dart';
@@ -25,7 +27,6 @@ class _ScanScreenState extends State<ScanScreen> {
   bool transferSuccessful = false;
 
   bool _isLoading = false;
-  bool _isOnQRViewCreated = true;
   bool _isScanned = false;
 
   late String currentUserId;
@@ -99,29 +100,28 @@ class _ScanScreenState extends State<ScanScreen> {
         qrViewController!.scannedDataStream.listen((scanData) {
           if (!_isScanned) {
             _isScanned = true;
-            _transferAmount(scanData.code!);
+            _transferAmount(scanData.code!, context);
           }
         });
       });
     }
   }
 
-  // void _null(QRViewController controller) {}
-
-  Future<void> _transferAmount(String qrData) async {
+  Future<void> _transferAmount(String qrData, BuildContext context) async {
     try {
       setState(() {
         _isLoading = true;
       });
 
-      String receiverId = widget.currentUser!.uid;
-      String senderId = qrData.split(",")[0];
+      String senderId = widget.currentUser!.uid;
+      String receiverId = qrData.split(",")[0];
       String amount = qrData.split(",")[1];
+      String name = qrData.split(",")[2];
 
       final senderWalletRef =
-          FirebaseFirestore.instance.collection('users').doc(receiverId);
-      final receiverWalletRef =
           FirebaseFirestore.instance.collection('users').doc(senderId);
+      final receiverWalletRef =
+          FirebaseFirestore.instance.collection('users').doc(receiverId);
 
       final senderWallet = await senderWalletRef.get();
       final receiverWallet = await receiverWalletRef.get();
@@ -145,6 +145,49 @@ class _ScanScreenState extends State<ScanScreen> {
         return;
       }
 
+      // Show confirmation dialog
+      bool? confirm = await showDialog<bool>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Confirm Transaction'),
+            content: Text('Transfer ₦$amount to $name?'),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('Cancel'),
+                onPressed: () {
+                  Navigator.of(context).pop(false);
+                },
+              ),
+              TextButton(
+                child: const Text('Confirm'),
+                onPressed: () {
+                  Navigator.of(context).pop(true);
+                },
+              ),
+            ],
+          );
+        },
+      );
+
+      if (confirm == null || !confirm) {
+        // User canceled transfer
+        setState(() {
+          _isLoading = false;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Transaction cancelled.'),
+            ),
+          );
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const HomePage()),
+          );
+        });
+        return;
+      }
+
+      // update sender and receiver balance
       await FirebaseFirestore.instance.runTransaction((transaction) async {
         transaction.update(
             senderWalletRef, {'balance': senderBalance - int.parse(amount)});
@@ -152,30 +195,20 @@ class _ScanScreenState extends State<ScanScreen> {
             {'balance': receiverBalance + int.parse(amount)});
       });
 
-      // if (receiverId.compareTo(senderId) > 0) {
-      //   groupChatId = '$receiverId-$senderId';
-      // } else {
-      //   groupChatId = '$senderId-$receiverId';
-      // }
-
       firestoreProvider.sendAndReceive(
-        // groupChatId,
         senderId,
         receiverId,
         amount,
       );
 
-      await Future.delayed(const Duration(seconds: 5));
+      // await Future.delayed(const Duration(seconds: 5));
 
       setState(() {
-        print("ReceiverId >>>> $receiverId");
-        print("SenderId >>>>>> $senderId");
-        print("Amount >>>>>> $amount");
         transferSuccessful = true;
         _isLoading = false;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('$amount received successfully.'),
+            content: Text('₦$amount sent successfully.'),
           ),
         );
         Navigator.pushReplacement(
@@ -188,7 +221,7 @@ class _ScanScreenState extends State<ScanScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const HomePage()),
-      ); // Navigate back to HomeScreen
+      );
     }
   }
 
@@ -212,16 +245,16 @@ class _ScanScreenState extends State<ScanScreen> {
             ),
           ),
           const SizedBox(height: 16.0),
-          Positioned(
-            bottom: 50,
+          const Positioned(
+            bottom: 100,
             right: 25,
             left: 25,
             child: Align(
               alignment: Alignment.bottomCenter,
-              child: ElevatedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.qr_code_scanner_rounded),
-                label: const Text('Scan QR Code'),
+              child: Text(
+                "Align the QR code within the frame to scan",
+                style: TextStyle(color: ColorPalette.white),
+                textAlign: TextAlign.center,
               ),
             ),
           ),

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:qr_pay/ui/screens/login.dart';
 import 'package:qr_pay/ui/screens/scan.dart';
-import 'package:qr_pay/ui/screens/send.dart';
+import 'package:qr_pay/ui/screens/generate.dart';
 
 import '../../blocs/auth/auth_bloc.dart';
 import '../../core/themes/themes.dart';
@@ -40,6 +40,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _getWalletBalance();
+    print("${currentUser?.uid}");
   }
 
   Future<void> _getWalletBalance() async {
@@ -102,15 +103,9 @@ class _HomePageState extends State<HomePage> {
               ));
         }).toList();
       },
-      child: Padding(
-        padding: const EdgeInsets.all(10.0),
-        child: CircleAvatar(
-          backgroundImage: NetworkImage(
-            currentUser!.photoURL != null
-                ? '${currentUser!.photoURL}'
-                : 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png',
-          ),
-        ),
+      child: const Padding(
+        padding: EdgeInsets.all(10.0),
+        child: Icon(Icons.person_2_rounded),
       ),
     );
   }
@@ -198,31 +193,17 @@ class _HomePageState extends State<HomePage> {
                             itemBuilder: (context, index) {
                               return ListTile(
                                 contentPadding: const EdgeInsets.all(0),
-                                leading: currentUser.uid == trxs[index].senderId
-                                    ? Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: ColorPalette.danger10,
-                                          borderRadius:
-                                              BorderRadius.circular(25.0),
-                                        ),
-                                        child: const Icon(
-                                          Icons.call_made_rounded,
-                                          color: ColorPalette.danger,
-                                        ),
-                                      )
-                                    : Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: ColorPalette.success10,
-                                          borderRadius:
-                                              BorderRadius.circular(25.0),
-                                        ),
-                                        child: const Icon(
-                                          Icons.call_received_rounded,
-                                          color: ColorPalette.success,
-                                        ),
-                                      ),
+                                leading: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: ColorPalette.black10,
+                                    borderRadius: BorderRadius.circular(25.0),
+                                  ),
+                                  child: const Icon(
+                                    Icons.published_with_changes_rounded,
+                                    color: ColorPalette.black,
+                                  ),
+                                ),
                                 title: Text(
                                   '₦${trxs[index].amount}',
                                   style: const TextStyle(
@@ -291,7 +272,7 @@ class _HomePageState extends State<HomePage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute<void>(
-                        builder: (BuildContext context) => SendScreen(),
+                        builder: (BuildContext context) => ScanScreen(),
                       ),
                     );
                   },
@@ -319,7 +300,7 @@ class _HomePageState extends State<HomePage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute<void>(
-                        builder: (BuildContext context) => ScanScreen(),
+                        builder: (BuildContext context) => GenerateScreen(),
                       ),
                     );
                   },
@@ -369,41 +350,5 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
-  }
-
-  ListTile transactionListItem() {
-    return ListTile(
-        contentPadding: const EdgeInsets.all(0),
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: ColorPalette.info10,
-            borderRadius: BorderRadius.circular(8.0),
-          ),
-          child: const Icon(
-            Icons.swap_horizontal_circle,
-            color: ColorPalette.info,
-          ),
-        ),
-        title: const Text(
-          'John Deere',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        subtitle: const Text('Payments'),
-        trailing: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: const [
-            Text(
-              "+3,000",
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            Text("fee: 199"),
-          ],
-        ));
   }
 }

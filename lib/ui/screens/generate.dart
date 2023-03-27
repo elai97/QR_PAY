@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -7,19 +8,21 @@ import 'package:qr_flutter/qr_flutter.dart';
 // import '../services/firestore_service.dart';
 // import '../utils/qr_utils.dart';
 
-class SendScreen extends StatefulWidget {
+class GenerateScreen extends StatefulWidget {
   final currentUser = FirebaseAuth.instance.currentUser;
 
-  SendScreen({
+  GenerateScreen({
     super.key,
   });
 
   @override
-  _SendScreenState createState() => _SendScreenState();
+  _GenerateScreenState createState() => _GenerateScreenState();
 }
 
-class _SendScreenState extends State<SendScreen> {
+class _GenerateScreenState extends State<GenerateScreen> {
+  final currentUser = FirebaseAuth.instance.currentUser;
   String amount = "0.00";
+  String _name = "";
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   bool transferSuccessful = false;
   final _formKey = GlobalKey<FormState>();
@@ -62,16 +65,37 @@ class _SendScreenState extends State<SendScreen> {
   // }
 
   @override
+  void initState() {
+    super.initState();
+    _getWalletName();
+  }
+
+  @override
   void dispose() {
     _amountController.dispose();
     super.dispose();
+  }
+
+  Future<void> _getWalletName() async {
+    try {
+      final walletRef =
+          FirebaseFirestore.instance.collection('users').doc(currentUser!.uid);
+      final walletData = await walletRef.get();
+      setState(() {
+        _name = walletData['name'] ?? '';
+      });
+    } catch (e) {
+      print(e.toString());
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Send Payment'),
+        title: isShowForm == true
+            ? const Text('Receive Payment')
+            : const SizedBox.shrink(),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -117,7 +141,7 @@ class _SendScreenState extends State<SendScreen> {
                             ),
                           );
                         }
-                      }, // _generateQRCode,
+                      },
                       icon: const Icon(Icons.qr_code),
                       label: const Text('Generate QR Code'),
                     )
@@ -127,7 +151,7 @@ class _SendScreenState extends State<SendScreen> {
                   ? Center(
                       child: QrImage(
                         data:
-                            "${widget.currentUser!.uid},${_amountController.text}",
+                            "${widget.currentUser!.uid},${_amountController.text},$_name",
                         key: qrKey,
                         size: 250,
                       ),
@@ -137,12 +161,13 @@ class _SendScreenState extends State<SendScreen> {
               isShowQr == true
                   ? Center(
                       child: Text(
-                        "Scan the QR code to receive ₦${_amountController.text}",
+                        "Scan the QR code to send ₦${_amountController.text} to $_name",
                         style: const TextStyle(fontSize: 18),
                         textAlign: TextAlign.center,
                       ),
                     )
                   : const SizedBox.shrink(),
+
               // Center(
               //   child: _qrCodeBytes != null
               //       ? Image.memory(_qrCodeBytes!)
